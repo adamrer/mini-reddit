@@ -1,22 +1,48 @@
--- Autor: Adam Øeøicha
+-- Author: Adam Øeøicha
 
--- tabulka uivatelù
+/* 
+
+Mini Reddit databáze
+--------------------
+
+Jako téma na zápoètovou databázovou aplikaci mì napadlo vytvoøit zjednodušenou 
+databázi sociální sítì Reddit. V ní uivatelé mohou bıt souèástí komunit, do 
+kterıch mohou zveøejnit pøíspìvky, k pøíspìvkùm pøidat komentáø, oznaèit 
+pøíspìvek/komentáø, e se jim líbí/nelíbí, nebo jim pøidat cenu, pokud se jim 
+obzvláš líbí.
+
+
+
+
+*/
+
+
+
+-- table of users
 create table users (
     id numeric(32)
         constraint users_pk primary key,
-    username varchar2(64 char) not null,
+    username varchar2(64 char) not null
+        constraint users_username_uq
+            unique,
+    email varchar2(128 char) not null
+        constraint users_email_uq
+            unique,
     created_at timestamp default systimestamp
 );
 
--- tabulka komunit
+-- table of communities
 create table communities (
     id numeric(32)
         constraint communities_pk primary key,
-    name varchar2(64 char) not null,
+    name varchar2(64 char) not null
+        constraint communities_name_uq
+            unique,
+    description varchar2(1024 char),
     created_at timestamp default systimestamp
 );
 
--- tabulka pøíspìvkù
+-- table of posts
 create table posts (
     id numeric(32)
         constraint posts_pk primary key,
@@ -34,7 +60,7 @@ create table posts (
     created_at timestamp default systimestamp
 );
 
--- tabulka komentáøù
+-- table of comments
 create table comments (
     id numeric(32)
         constraint comments_pk primary key,
@@ -53,7 +79,7 @@ create table comments (
     text clob not null
 );
 
--- tabulka ocenìní
+-- table of awards that can be given to comments or posts
 create table awards (
     id numeric(16)
         constraint award_pk primary key,
@@ -61,25 +87,25 @@ create table awards (
     icon_path varchar2(255 char) not null
 );
 
--- hlasy u pøíspìvkù
-create table post_vote (
+-- table of votes to posts
+create table post_votes (
     post_id numeric(32) 
-        constraint post_vote_fk_post
+        constraint post_votes_fk_post
             references posts(id)
             on delete cascade,
     user_id numeric(32)
-        constraint post_vote_fk_user
+        constraint post_votes_fk_user
             references users(id)
             on delete set null,
     vote_value numeric(1)
-        constraint check_post_vote_value check (vote_value in (1, -1)),
+        constraint check_post_votes_value check (vote_value in (1, -1)),
     created_at timestamp default systimestamp,
-    constraint post_vote_pk
+    constraint post_votes_pk
         primary key(post_id, user_id)
 );
 
--- hlasy u komentáøù
-create table comment_vote (
+-- table of votes to comments
+create table comment_votes (
     comment_id numeric(32)
         constraint comment_votes_fk_comment
             references comments(id)
@@ -89,50 +115,58 @@ create table comment_vote (
             references users(id)
             on delete set null,
     vote_value numeric(1)
-        constraint check_comment_vote_value check (vote_value in (1, -1)),
+        constraint check_comment_votes_value check (vote_value in (1, -1)),
     created_at timestamp default systimestamp,
     constraint comment_votes_pk
         primary key(comment_id, user_id)
 );
 
--- ocenìní u pøíspìvkù
-create table post_award (
-    post_id numeric(32)
-        constraint post_award_fk_post
+-- table of awards given to posts by users
+create table post_awards (
+    post_id numeric(32) not null
+        constraint post_awards_fk_post
             references posts(id)
             on delete cascade,
-    award_id numeric(16)
-        constraint post_award_fk_award
+    award_id numeric(16) not null
+        constraint post_awards_fk_award
             references awards(id)
             on delete cascade,
+    user_id numeric(32)
+        constraint post_awards_fk_user
+            references users(id)
+            on delete set null,
     created_at timestamp default systimestamp,
     constraint post_awards_pk
         primary key(post_id, award_id)
 );
 
--- ocenìní u komentáøù
-create table comment_award (
+-- table of awards given to comments by users
+create table comment_awards (
     comment_id numeric(32)
-        constraint comment_award_fk_comment
+        constraint comment_awards_fk_comment
             references comments(id)
             on delete cascade,
     award_id numeric(16)
-        constraint comment_award_fk_award
+        constraint comment_awards_fk_award
             references awards(id)
             on delete cascade,
+    user_id numeric(32)
+        constraint comment_awards_fk_user
+            references users(id)
+            on delete set null,
     created_at timestamp default systimestamp,
-    constraint comment_award_pk
+    constraint comment_awards_pk
         primary key(comment_id, award_id)
 );
 
--- èlenové komunit
-create table user_community (
+-- table of community members
+create table community_members (
     user_id numeric(32)
-        constraint user_community_fk_user
+        constraint community_members_fk_user
             references users(id)
             on delete cascade,
     community_id numeric(32)
-        constraint user_community_fk_community
+        constraint community_members_fk_community
             references communities(id)
             on delete cascade,
     created_at timestamp default systimestamp
