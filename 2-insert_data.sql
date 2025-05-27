@@ -18,12 +18,12 @@ begin
     community_members_package.add_member('alice', 'sports');
 
     -- AWARDS
-    awards_package.add_award('Gold Star', '/icons/gold.png');
-    awards_package.add_award('Silver Star', '/icons/silver.png');
+    awards_package.add_award('Gold Star', 'https://cdn-icons-png.flaticon.com/512/5406/5406792.png');
+    awards_package.add_award('Silver Star', 'https://cdn-icons-png.flaticon.com/512/17155/17155284.png');
 
     -- POSTS
     posts_package.add_post('alice', 'programming', 'How to start with PL/SQL?', 'Any tips for beginners?', null);
-    posts_package.add_post('bob', 'sports', 'Who will win the Champions League?', 'Let’s hear your predictions!', null);
+    posts_package.add_post('bob', 'sports', 'Who will win the Champions League?', 'Let’s hear your predictions!', 'https://cdn.pixabay.com/photo/2018/06/12/13/55/trophy-3470654_1280.jpg');
 
     -- COMMENTS
     comments_package.add_comment('bob', null, 1, 'Start with the Oracle documentation.');
