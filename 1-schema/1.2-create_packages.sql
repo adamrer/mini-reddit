@@ -56,7 +56,8 @@ create or replace package body users_package as
     ) as
         v_user_id users.id%type;
     begin
-        v_user_id := user_id(p_username);
+        select id into v_user_id from users where username = p_username
+        for update;
     
         delete from users where id = v_user_id;
     end;
@@ -106,12 +107,14 @@ create or replace package body communities_package as
     procedure delete_community(
         p_name communities.name%type
         ) as
+        v_community_id communities.id%type;
     begin
-        if community_id(p_name) is null
-        then
+        select id into v_community_id from communities where name = p_name
+        for update;
+        delete from communities where id = v_community_id;
+    exception
+        when no_data_found then
             raise_application_error(-20103,'Community with name "'||p_name||'" does not exist.');
-        end if;
-        delete from communities where id = community_id(p_name);
     end;
     
     function community_id(p_name communities.name%type) return communities.id%type
@@ -168,12 +171,15 @@ create or replace package body awards_package as
     procedure delete_award(
         p_award_id awards.id%type
         ) as
+        v_dummy number;
     begin
-        if not award_exists(p_award_id)
-        then
-            raise_application_error(-20103,'Award with id "'||p_award_id||'" does not exist.');
-        end if; 
+        select 1 into v_dummy from awards where id = p_award_id
+        for update;
         delete from awards where id = p_award_id;
+        
+    exception
+        when no_data_found then
+            raise_application_error(-20103,'Award with id "'||p_award_id||'" does not exist.');
     end;
         
     function award_exists(p_award_id awards.id%type) return boolean
@@ -200,6 +206,12 @@ create or replace package comments_package as
         p_author_username users.username%type,
         p_parent_comment_id comments.parent_comment_id%type,
         p_post_id comments.post_id%type,
+        p_text comments.text%type
+        );
+    
+    -- updates text of a comment
+    procedure update_comment(
+        p_comment_id comments.id%type,
         p_text comments.text%type
         );
     
@@ -233,24 +245,52 @@ create or replace package body comments_package as
         p_parent_comment_id comments.parent_comment_id%type,
         p_post_id comments.post_id%type,
         p_text comments.text%type
-        ) as
+    ) as
+        v_author_id users.id%type;
+        v_dummy number;
     begin
-        if users_package.user_id(p_author_username) is null
-        then
-            raise_application_error(-20100,'User with username "'||p_author_username||'" does not exist.');
+        select id into v_author_id from users where username = p_author_username
+        for update;
+    
+        if p_parent_comment_id is not null then
+            select 1 into v_dummy from comments where id = p_parent_comment_id
+            for update;
         end if;
-        if not comments_package.comment_exists(p_parent_comment_id) then
-            raise_application_error(-20101,'Comment with id "'||p_parent_comment_id||'" does not exist.');
-        end if;    
-        
-        insert into comments(id, author_id, parent_comment_id, post_id, text)
-            values(
-                comments_id_seq.nextval, 
-                users_package.user_id(p_author_username), 
-                p_parent_comment_id, 
-                p_post_id, 
-                p_text);
+    
+        insert into comments(
+            id, author_id, parent_comment_id, post_id, text
+        ) values (
+            comments_id_seq.nextval,
+            v_author_id,
+            p_parent_comment_id,
+            p_post_id,
+            p_text
+        );
+    
+    exception
+        when no_data_found then
+            if p_parent_comment_id is not null then
+                raise_application_error(-20101, 'Parent comment with id "'||p_parent_comment_id||'" does not exist.');
+            else
+                raise_application_error(-20100, 'User with username "'||p_author_username||'" does not exist.');
+            end if;
     end;
+        
+    procedure update_comment(
+        p_comment_id comments.id%type,
+        p_text comments.text%type
+        ) as
+        v_dummy number;
+    begin
+        select 1 into v_dummy from comments where id = p_comment_id
+        for update;
+        
+        update comments set text=p_text where id = p_comment_id;
+    exception
+        when no_data_found then
+            raise_application_error(-20101,'Comment with id "'||p_comment_id||'" does not exist.');
+    end;
+    
     
     function comment_exists(p_comment_id comments.id%type) return boolean
     as
@@ -343,15 +383,21 @@ create or replace package body posts_package as
         p_text posts.text%type,
         p_image_path posts.image_path%type
         ) as
+        v_author_id users.id%type;
+        v_community_id communities.id%type;
     begin
-        if users_package.user_id(p_author_username) is null
-        then
-            raise_application_error(-20102,'User with username "'||p_author_username||'" does not exist.');
-        end if;
-        if communities_package.community_id(p_community_name) is null
-        then
-            raise_application_error(-20103,'Community with name "'||p_community_name||'" does not exist.');
-        end if;    
+        select id into v_author_id from users where username = p_author_username
+        for update;
+        
+        begin
+            select id into v_community_id
+            from communities
+            where name = p_community_name
+            for update;
+        exception
+            when no_data_found then
+                raise_application_error(-20101, 'Community with name "'||p_community_name||'" does not exist.');
+        end;  
         
         insert into posts(id, author_id, community_id, title, text, image_path)
             values(
@@ -361,6 +407,9 @@ create or replace package body posts_package as
                 p_title, 
                 p_text,
                 p_image_path);
+    exception
+        when no_data_found then
+            raise_application_error(-20102,'User with username "'||p_author_username||'" does not exist.');
     end;
     
     function post_exists(p_post_id posts.id%type) return boolean
@@ -379,18 +428,16 @@ create or replace package body posts_package as
     procedure delete_post(
         p_post_id posts.id%type
     ) as
+        v_dummy number;
     begin
-        if not post_exists(p_post_id) then
-            raise_application_error(-20104,'Post with id "'||p_post_id||'" does not exist.');
-        end if;
     
-        
-        delete from post_votes where post_id = p_post_id;
-        delete from post_awards where post_id = p_post_id;
-        delete from comments where post_id = p_post_id;
-    
+        select 1 into v_dummy from posts where id=p_post_id
+        for update;
         
         delete from posts where id = p_post_id;
+    exception
+        when no_data_found then
+            raise_application_error(-20104,'Post with id "'||p_post_id||'" does not exist.');
     end;
     
     procedure update_post(
@@ -399,16 +446,20 @@ create or replace package body posts_package as
         p_text posts.text%type,
         p_image_path posts.image_path%type
     ) as
+        v_dummy posts.id%type;
     begin
-        if not post_exists(p_post_id) then
-            raise_application_error(-20104,'Post with id "'||p_post_id||'" does not exist.');
-        end if;
+        select 1 into v_dummy from posts where id = p_post_id
+        for update;
+        
     
         update posts
         set title = p_title,
             text = p_text,
             image_path = p_image_path
         where id = p_post_id;
+    exception
+        when no_data_found then
+            raise_application_error(-20104,'Post with id "'||p_post_id||'" does not exist.');
     end;
     
     
@@ -455,20 +506,32 @@ create or replace package body comment_awards_package as
         p_award_id awards.id%type,
         p_user_username users.username%type
         ) as
+            v_user_id users.id%type;
+            v_dummy number;
         begin
-            if users_package.user_id(p_user_username) is null
-            then
-                raise_application_error(-20102,'User with username "'||p_user_username||'" does not exist.');
-            end if;
-            if not comments_package.comment_exists(p_comment_id) then
-                raise_application_error(-20101,'Comment with id "'||p_comment_id||'" does not exist.');
-            end if; 
-            if not awards_package.award_exists(p_award_id)
-            then
-                raise_application_error(-20103,'Award with id "'||p_award_id||'" does not exist.');
-            end if;   
+            select id into v_user_id from users where username = p_user_username
+            for update;
+            
+            begin
+                select 1 into v_dummy from comments where id = p_comment_id
+                for update;
+            exception
+                when no_data_found then
+                    raise_application_error(-20101,'Comment with id "'||p_comment_id||'" does not exist.');    
+            end;
+                       
+            begin
+                select 1 into v_dummy from awards where id = p_award_id
+                for update;
+            exception
+                when no_data_found then
+                    raise_application_error(-20103,'Award with id "'||p_award_id||'" does not exist.');
+            end;
             insert into comment_awards(comment_id, award_id, user_id)
-                values(p_comment_id, p_award_id, users_package.user_id(p_user_username));
+                values(p_comment_id, p_award_id, v_user_id);
+        exception
+            when no_data_found then
+                raise_application_error(-20102,'User with username "'||p_user_username||'" does not exist.');
         end;
         
     function awards_count(
@@ -508,20 +571,32 @@ create or replace package body post_awards_package as
         p_award_id awards.id%type,
         p_user_username users.username%type
         ) as
+            v_user_id users.id%type;
+            v_dummy number;
         begin
-            if users_package.user_id(p_user_username) is null
-            then
-                raise_application_error(-20102,'User with username "'||p_user_username||'" does not exist.');
-            end if;
-            if not posts_package.post_exists(p_post_id) then
-                raise_application_error(-20104,'Post with id "'||p_post_id||'" does not exist.');
-            end if; 
-            if not awards_package.award_exists(p_award_id)
-            then
-                raise_application_error(-20103,'Award with id "'||p_award_id||'" does not exist.');
-            end if;   
+            select id into v_user_id from users where username = p_user_username
+            for update;
+            
+            begin
+                select 1 into v_dummy from posts where id = p_post_id
+                for update;
+            exception
+                when no_data_found then
+                    raise_application_error(-20104,'Post with id "'||p_post_id||'" does not exist.');    
+            end;
+                       
+            begin
+                select 1 into v_dummy from awards where id = p_award_id
+                for update;
+            exception
+                when no_data_found then
+                    raise_application_error(-20103,'Award with id "'||p_award_id||'" does not exist.');
+            end;
             insert into post_awards(post_id, award_id, user_id)
-                values(p_post_id, p_award_id, users_package.user_id(p_user_username));
+                values(p_post_id, p_award_id, v_user_id);
+        exception
+            when no_data_found then
+                raise_application_error(-20102,'User with username "'||p_user_username||'" does not exist.');
         end;
         
     function awards_count(
@@ -571,26 +646,38 @@ create or replace package body comment_votes_package as
         p_user_username users.username%type
     ) as
         v_user_id users.id%type;
-        v_exists number;
+        v_dummy number;
     begin
-        v_user_id := users_package.user_id(p_user_username);
+        
+        select id into v_user_id from users where username = p_user_username
+        for update;
+        
+        begin
+            select 1 into v_dummy from comments where id = p_comment_id
+            for update;
+        exception
+            when no_data_found then
+                raise_application_error(-20101,'Comment with id "'||p_comment_id||'" does not exist.');    
+        end;
 
-        if not comments_package.comment_exists(p_comment_id) then
-            raise_application_error(-20101,'Comment with id "'||p_comment_id||'" does not exist.');
-        end if;
-
-        select count(*) into v_exists
-        from comment_votes
-        where comment_id = p_comment_id and user_id = v_user_id;
-
-        if v_exists = 0 then
-            insert into comment_votes(comment_id, user_id, vote_value)
-            values(p_comment_id, v_user_id, 1);
-        else
+        begin
+            select vote_value into v_dummy
+            from comment_votes
+            where comment_id = p_comment_id and user_id = v_user_id
+            for update;
+    
             update comment_votes
             set vote_value = 1
             where comment_id = p_comment_id and user_id = v_user_id;
-        end if;
+    
+        exception
+            when no_data_found then
+                insert into comment_votes(comment_id, user_id, vote_value)
+                values(p_comment_id, v_user_id, 1);
+        end;
+    exception
+        when no_data_found then
+            raise_application_error(-20102,'User with username "'||p_user_username||'" does not exist.');
     end;
 
     procedure dislike_comment(
@@ -598,26 +685,38 @@ create or replace package body comment_votes_package as
         p_user_username users.username%type
     ) as
         v_user_id users.id%type;
-        v_exists number;
+        v_dummy number;
     begin
-        v_user_id := users_package.user_id(p_user_username);
+        
+        select id into v_user_id from users where username = p_user_username
+        for update;
+        
+        begin
+            select 1 into v_dummy from comments where id = p_comment_id
+            for update;
+        exception
+            when no_data_found then
+                raise_application_error(-20101,'Comment with id "'||p_comment_id||'" does not exist.');    
+        end;
 
-        if not comments_package.comment_exists(p_comment_id) then
-            raise_application_error(-20101,'Comment with id "'||p_comment_id||'" does not exist.');
-        end if;
-
-        select count(*) into v_exists
-        from comment_votes
-        where comment_id = p_comment_id and user_id = v_user_id;
-
-        if v_exists = 0 then
-            insert into comment_votes(comment_id, user_id, vote_value)
-            values(p_comment_id, v_user_id, -1);
-        else
+        begin
+            select vote_value into v_dummy
+            from comment_votes
+            where comment_id = p_comment_id and user_id = v_user_id
+            for update;
+    
             update comment_votes
             set vote_value = -1
             where comment_id = p_comment_id and user_id = v_user_id;
-        end if;
+    
+        exception
+            when no_data_found then
+                insert into comment_votes(comment_id, user_id, vote_value)
+                values(p_comment_id, v_user_id, -1);
+        end;
+    exception
+        when no_data_found then
+            raise_application_error(-20102,'User with username "'||p_user_username||'" does not exist.');
     end;
  
     procedure delete_vote(
@@ -625,11 +724,22 @@ create or replace package body comment_votes_package as
         p_user_username users.username%type
     ) as
         v_user_id users.id%type;
+        v_dummy number;
     begin
-        v_user_id := users_package.user_id(p_user_username);
-    
+        select id into v_user_id from users where username = p_user_username
+        for update;
+        begin
+            select 1 into v_dummy from comments where id = p_comment_id
+            for update;
+        exception
+            when no_data_found then
+                raise_application_error(-20101,'Comment with id "'||p_comment_id||'" does not exist.');
+        end;
         delete from comment_votes
         where comment_id = p_comment_id and user_id = v_user_id;
+    exception
+        when no_data_found then
+            raise_application_error(-20102,'User with username "'||p_user_username||'" does not exist.');
     end;
     
     function get_comment_vote_value(
@@ -678,26 +788,38 @@ create or replace package body post_votes_package as
         p_user_username users.username%type
     ) as
         v_user_id users.id%type;
-        v_exists number;
+        v_dummy number;
     begin
-        v_user_id := users_package.user_id(p_user_username);
+        
+        select id into v_user_id from users where username = p_user_username
+        for update;
+        
+        begin
+            select 1 into v_dummy from posts where id = p_post_id
+            for update;
+        exception
+            when no_data_found then
+                raise_application_error(-20104,'Post with id "'||p_post_id||'" does not exist.');    
+        end;
 
-        if not posts_package.post_exists(p_post_id) then
-            raise_application_error(-20104,'Post with id "'||p_post_id||'" does not exist.');
-        end if;
-
-        select count(*) into v_exists
-        from post_votes
-        where post_id = p_post_id and user_id = v_user_id;
-
-        if v_exists = 0 then
-            insert into post_votes(post_id, user_id, vote_value)
-            values(p_post_id, v_user_id, 1);
-        else
+        begin
+            select vote_value into v_dummy
+            from post_votes
+            where post_id = p_post_id and user_id = v_user_id
+            for update;
+    
             update post_votes
             set vote_value = 1
             where post_id = p_post_id and user_id = v_user_id;
-        end if;
+    
+        exception
+            when no_data_found then
+                insert into post_votes(post_id, user_id, vote_value)
+                values(p_post_id, v_user_id, 1);
+        end;
+    exception
+        when no_data_found then
+            raise_application_error(-20102,'User with username "'||p_user_username||'" does not exist.');
     end;
  
     procedure dislike_post(
@@ -705,40 +827,64 @@ create or replace package body post_votes_package as
         p_user_username users.username%type
     ) as
         v_user_id users.id%type;
-        v_exists number;
+        v_dummy number;
     begin
-        v_user_id := users_package.user_id(p_user_username);
+        
+        select id into v_user_id from users where username = p_user_username
+        for update;
+        
+        begin
+            select 1 into v_dummy from posts where id = p_post_id
+            for update;
+        exception
+            when no_data_found then
+                raise_application_error(-20104,'Post with id "'||p_post_id||'" does not exist.');    
+        end;
 
-        if not posts_package.post_exists(p_post_id) then
-            raise_application_error(-20104,'Post with id "'||p_post_id||'" does not exist.');
-        end if;
-
-        select count(*) into v_exists
-        from post_votes
-        where post_id = p_post_id and user_id = v_user_id;
-
-        if v_exists = 0 then
-            insert into post_votes(post_id, user_id, vote_value)
-            values(p_post_id, v_user_id, -1);
-        else
+        begin
+            select vote_value into v_dummy
+            from post_votes
+            where post_id = p_post_id and user_id = v_user_id
+            for update;
+    
             update post_votes
             set vote_value = -1
             where post_id = p_post_id and user_id = v_user_id;
-        end if;
-    end; 
     
-    
+        exception
+            when no_data_found then
+                insert into post_votes(post_id, user_id, vote_value)
+                values(p_post_id, v_user_id, -1);
+        end;
+    exception
+        when no_data_found then
+            raise_application_error(-20102,'User with username "'||p_user_username||'" does not exist.');
+    end;
+ 
     procedure delete_vote(
         p_post_id posts.id%type,
         p_user_username users.username%type
     ) as
         v_user_id users.id%type;
+        v_dummy number;
     begin
-        v_user_id := users_package.user_id(p_user_username);
+        select id into v_user_id from users where username = p_user_username
+        for update;
     
+        begin
+            select 1 into v_dummy from posts where id = p_post_id
+            for update;
+        exception
+            when no_data_found then
+                raise_application_error(-20104,'Post with id "'||p_post_id||'" does not exist.');   
+        end;
         delete from post_votes
         where post_id = p_post_id and user_id = v_user_id;
+    exception 
+        when no_data_found then
+            raise_application_error(-20102,'User with username "'||p_user_username||'" does not exist.');
     end;
+    
 
     function get_post_vote_value(
         p_post_id posts.id%type
@@ -776,17 +922,24 @@ create or replace package body community_members_package as
         p_user_username users.username%type,
         p_community_name communities.name%type
         ) as
+            v_user_id users.id%type;
+            v_community_id communities.id%type;
         begin
-            if users_package.user_id(p_user_username) is null
-            then
-                raise_application_error(-20102,'User with username "'||p_user_username||'" does not exist.');
-            end if;
-            if communities_package.community_id(p_community_name) is null
-            then
-                raise_application_error(-20103,'Community with name "'||p_community_name||'" does not exist.');
-            end if; 
+            select id into v_user_id from users where username = p_user_username
+            for update;
+            
+            begin
+                select id into v_community_id from communities where name = p_community_name
+                for update;
+            exception
+                when no_data_found then
+                    raise_application_error(-20103,'Community with name "'||p_community_name||'" does not exist.');
+            end;
             insert into community_members(user_id, community_id)
-                values(users_package.user_id(p_user_username), communities_package.community_id(p_community_name));
+                values(v_user_id, v_community_id);
+        exception
+            when no_data_found then
+                raise_application_error(-20102,'User with username "'||p_user_username||'" does not exist.');
         end;
         
         
@@ -794,16 +947,24 @@ create or replace package body community_members_package as
         p_user_username users.username%type,
         p_community_name communities.name%type
         ) as
+        v_user_id users.id%type;
+        v_community_id communities.id%type;
     begin
-        if users_package.user_id(p_user_username) is null
-        then
-            raise_application_error(-20102,'User with username "'||p_user_username||'" does not exist.');
-        end if;
-        if communities_package.community_id(p_community_name) is null
-        then
-            raise_application_error(-20103,'Community with name "'||p_community_name||'" does not exist.');
-        end if; 
+        select id into v_user_id from users where username = p_user_username
+        for update;
+        
+        begin
+            select id into v_community_id from communities where name = p_community_name
+            for update;
+        exception
+            when no_data_found then
+                raise_application_error(-20103,'Community with name "'||p_community_name||'" does not exist.');    
+        end;
+
         delete from community_members where user_id=users_package.user_id(p_user_username) and community_id=communities_package.community_id(p_community_name);
+    exception
+        when no_data_found then
+            raise_application_error(-20102,'User with username "'||p_user_username||'" does not exist.');
     end;
 end community_members_package;
 /  
