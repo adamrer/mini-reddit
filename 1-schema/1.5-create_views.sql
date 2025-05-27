@@ -1,8 +1,9 @@
 -- Author: Adam Øeøicha
 
--- show posts that were created earlier than an hour ago
+-- show posts that were created earlier than a day ago ordered by vote values descending
 create or replace view view_hot_posts as
     select 
+        p.id as post_id,
         p.title, 
         p.text,
         p.image_path,
@@ -10,27 +11,50 @@ create or replace view view_hot_posts as
         post_votes_package.get_post_vote_value(p.id) as votes,
         post_awards_package.awards_count(p.id) as awards,
         u.username as author,
-        p.created_at
+        c.name as community,
+        p.created_at as posted_at
     from posts p
     join users u on p.author_id = u.id
+    join communities c on p.community_id = c.id
     where p.created_at >= systimestamp - interval '1' day
     order by votes desc;
     
+
+-- show posts that are from communities where the user is part of the community
+create or replace view view_relevant_posts as
+    select
+        member_user.username as viewer,
+        c.name as community_name,
+        p.id as post_id,
+        p.title,
+        p.text,
+        comments_package.comments_count(p.id) as comments,
+        post_votes_package.get_post_vote_value(p.id) as votes,
+        post_awards_package.awards_count(p.id) as awards,
+        post_user.username as author,
+        p.created_at as posted_at
+        
+    from users member_user
+    join community_members cm on cm.user_id = member_user.id
+    join communities c on cm.community_id = c.id
+    join posts p on p.community_id = c.id
+    join users post_user on p.author_id = post_user.id;
 
 -- show comments hierarchically ordered and siblings ordered by vote value
 create or replace view view_threaded_comments as
     select 
         c.post_id,
         level as reply_depth,
-        c.id,
+        c.id as comment_id,
         c.parent_comment_id,
+        u.username as author,
         c.text,
         comment_votes_package.get_comment_vote_value(c.id) as votes
     from comments c
+    join users u on c.author_id = u.id
     start with c.parent_comment_id is null
     connect by prior c.id = c.parent_comment_id
     order siblings by votes desc;
-
 
 -- show users ordered by the vote value on their posts
 create or replace view view_most_likeable_users as
@@ -54,4 +78,26 @@ create or replace view view_most_awarded_users as
     group by u.username
     order by total_awards desc;
     
+
+-- show list of communities and the number of members    
+create or replace view view_communities as
+    select
+        c.name,
+        c.description,
+        community_members_package.members_count(c.name) as members
+    from communities c;
+    
+
+-- show list of community members 
+create or replace view view_community_members as
+    select 
+        c.name,
+        u.username,
+        cm.created_at as joined_at
+    from community_members cm
+    join users u on cm.user_id = u.id
+    join communities c on cm.community_id = c.id
+    order by c.name, joined_at desc;
+
+ 
     
