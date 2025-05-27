@@ -49,12 +49,31 @@ create or replace view view_threaded_comments as
         c.parent_comment_id,
         u.username as author,
         c.text,
-        comment_votes_package.get_comment_vote_value(c.id) as votes
+        comment_votes_package.get_comment_vote_value(c.id) as votes,
+        comment_awards_package.awards_count(c.id) as awards
     from comments c
     join users u on c.author_id = u.id
     start with c.parent_comment_id is null
     connect by prior c.id = c.parent_comment_id
     order siblings by votes desc;
+
+-- show awards given to a comment
+create or replace view view_comment_awards as
+    select
+        c.id,
+        c.text,
+        author_u.username as author,
+        a.name as award,
+        a.icon_path as award_image,
+        awarder_u.username as awarded_by,
+        ca.created_at as awarded_at
+    from comments c
+    join comment_awards ca on ca.comment_id = c.id
+    join users awarder_u on ca.user_id = awarder_u.id
+    join users  author_u on c.author_id = author_u.id
+    join awards a on ca.award_id = a.id;
+    
+
 
 -- show users ordered by the vote value on their posts
 create or replace view view_most_likeable_users as

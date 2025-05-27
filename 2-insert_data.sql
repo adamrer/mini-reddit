@@ -28,7 +28,7 @@ begin
     -- POSTS
     posts_package.add_post('alice', 'programming', 'How to start with PL/SQL?', 'Any tips for beginners?', null);
     posts_package.add_post('bob', 'sports', 'Who will win the Champions League?', 'Let’s hear your predictions!', 'https://cdn.pixabay.com/photo/2018/06/12/13/55/trophy-3470654_1280.jpg');
-    posts_package.add_post('alice', 'linux', 'Is Arch Linux the best distro?', 'I am using Arch btw', null);
+    posts_package.add_post('john', 'linux', 'Is Arch Linux the best distro?', 'I am using Arch btw', null);
 
     -- COMMENTS
     comments_package.add_comment('bob', null, 1, 'Start with the Oracle documentation.');
