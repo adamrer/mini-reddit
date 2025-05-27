@@ -914,6 +914,10 @@ create or replace package community_members_package as
         p_community_name communities.name%type
         );
         
+    function members_count(
+        p_community_name communities.name%type
+        ) return number;
+        
 end community_members_package;
 /
     
@@ -966,5 +970,21 @@ create or replace package body community_members_package as
         when no_data_found then
             raise_application_error(-20102,'User with username "'||p_user_username||'" does not exist.');
     end;
+    
+    function members_count(
+        p_community_name communities.name%type
+    ) return number
+    as 
+        v_community_id communities.id%type;
+        retval number;
+    begin
+        select id into v_community_id from communities where name = p_community_name;
+        select count(*) into retval from community_members where community_id = v_community_id;
+        return retval;
+    exception
+        when no_data_found then
+            raise_application_error(-20103,'Community with name "'||p_community_name||'" does not exist.');
+    end;
+    
 end community_members_package;
 /  
