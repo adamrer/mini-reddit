@@ -1,4 +1,4 @@
--- Author: Adam Øeøicha
+-- Author: Adam ï¿½eï¿½icha
 
 
 --  U S E R S
@@ -60,6 +60,9 @@ create or replace package body users_package as
         for update;
     
         delete from users where id = v_user_id;
+    exception
+        when no_data_found then
+            raise_application_error(-20100, 'User with username "'||p_username||'" does not exist.');
     end;
     
 end users_package;
@@ -749,6 +752,9 @@ create or replace package body comment_votes_package as
             v_vote_value number;
         begin
             select sum(vote_value) into v_vote_value from comment_votes where comment_id=p_comment_id;
+            if v_vote_value is null then
+                return 0;
+            end if;
             return v_vote_value;
         end;
 end comment_votes_package;
@@ -893,6 +899,9 @@ create or replace package body post_votes_package as
             v_vote_value number;
         begin
             select sum(vote_value) into v_vote_value from post_votes where post_id=p_post_id;
+            if v_vote_value is null then
+                return 0;
+            end if;
             return v_vote_value;
         end;
 end post_votes_package;

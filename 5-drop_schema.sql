@@ -1,10 +1,13 @@
 
 -- drop views
+drop view view_posts;
 drop view view_relevant_posts;
 drop view view_threaded_comments;
+drop view view_comment_awards;
 drop view view_most_likeable_users;
 drop view view_most_awarded_users;
 drop view view_communities;
+drop view view_community_members;
 
 
 -- drop packages
