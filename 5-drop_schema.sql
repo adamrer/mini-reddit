@@ -30,11 +30,13 @@ drop sequence communities_id_seq;
 drop sequence posts_id_seq;
 drop sequence users_id_seq;
 
--- drop indeces
+-- drop indices
 drop index idx_posts_author_id;
 drop index idx_posts_community_id;
+drop index idx_posts_created_at;
 drop index idx_comments_post_id;
 drop index idx_comments_author_id;
+drop index idx_comments_created_at;
 drop index idx_community_members_community_id;
 drop index idx_community_members_user_id;
 

@@ -1,15 +1,15 @@
--- Author: Adam Øeøicha
+-- Author: Adam ï¿½eï¿½icha
 
 /* 
 
-Mini Reddit databáze
+Mini Reddit databï¿½ze
 --------------------
 
-Jako téma na zápoètovou databázovou aplikaci mì napadlo vytvoøit zjednodušenou 
-databázi sociální sítì Reddit. V ní uivatelé mohou bıt souèástí komunit, do 
-kterıch mohou zveøejnit pøíspìvky, k pøíspìvkùm pøidat komentáø, oznaèit 
-pøíspìvek/komentáø, e se jim líbí/nelíbí, nebo jim pøidat cenu, pokud se jim 
-obzvláš líbí.
+Jako tï¿½ma na zï¿½poï¿½tovou databï¿½zovou aplikaci mï¿½ napadlo vytvoï¿½it zjednoduï¿½enou 
+databï¿½zi sociï¿½lnï¿½ sï¿½tï¿½ Reddit. V nï¿½ uï¿½ivatelï¿½ mohou bï¿½t souï¿½ï¿½stï¿½ komunit, do 
+kterï¿½ch mohou zveï¿½ejnit pï¿½ï¿½spï¿½vky, k pï¿½ï¿½spï¿½vkï¿½m pï¿½idat komentï¿½ï¿½, oznaï¿½it 
+pï¿½ï¿½spï¿½vek/komentï¿½ï¿½, ï¿½e se jim lï¿½bï¿½/nelï¿½bï¿½, nebo jim pï¿½idat cenu, pokud se jim 
+obzvláš lï¿½bï¿½.
 
 
 

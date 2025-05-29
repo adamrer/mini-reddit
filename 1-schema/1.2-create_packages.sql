@@ -38,6 +38,9 @@ create or replace package body users_package as
             values (users_id_seq.nextval,
             p_username,
             p_email);
+    exception
+        when dup_val_on_index then
+            raise_application_error(-20012, 'User "'||p_username||'" already exists.');
     end;
     
     function user_id(p_username users.username%type) return users.id%type
@@ -49,6 +52,9 @@ create or replace package body users_package as
             from users 
             where username = p_username;
         return retval;    
+    exception 
+        when no_data_found then
+            return null;
     end;
     
     procedure delete_user(
@@ -103,8 +109,14 @@ create or replace package body communities_package as
         p_description communities.description%type
         ) as
     begin
+        if p_name is null then
+            raise_application_error(-20011, 'Community name must not be null.');
+        end if;
         insert into communities(id, name, description)
             values(communities_id_seq.nextval, p_name, p_description);
+    exception
+        when dup_val_on_index then
+            raise_application_error(-20010, 'Community "'||p_name||'" already exists.');
     end;
     
     procedure delete_community(
@@ -128,7 +140,10 @@ create or replace package body communities_package as
             into retval 
             from communities
             where name = p_name;
-        return retval;    
+        return retval;  
+    exception 
+        when no_data_found then
+            return null;  
     end;
     
 end communities_package;
@@ -316,6 +331,9 @@ create or replace package body comments_package as
         begin
             select count(*) into v_comments_count from comments where post_id=p_post_id;
             return v_comments_count;
+        exception 
+            when no_data_found then
+                return null;
         end;
         
     function comments_attached_to_post(
@@ -330,6 +348,9 @@ create or replace package body comments_package as
                 where c.post_id = p_post_id;
                 
             return v_cursor;    
+        exception 
+            when no_data_found then
+                return null;
         end;
         
 end comments_package;
@@ -347,10 +368,7 @@ create or replace package posts_package as
         p_text posts.text%type,
         p_image_path posts.image_path%type
         );
-    
-    -- checks if post with given id exists
-    function post_exists(p_post_id posts.id%type) return boolean;
-    
+        
     -- delete a post
     procedure delete_post(
         p_post_id posts.id%type
@@ -368,6 +386,9 @@ create or replace package posts_package as
     function get_posts_by_user(
         p_username users.username%type
         ) return sys_refcursor;
+
+    -- checks if post with given id exists
+    function post_exists(p_post_id posts.id%type) return boolean;
     
 end posts_package;
 /
@@ -480,6 +501,9 @@ create or replace package body posts_package as
                 where p.author_id = v_user_id;
                 
             return v_cursor;    
+        exception 
+            when no_data_found then
+                return null;
         end;
     
     
@@ -545,6 +569,9 @@ create or replace package body comment_awards_package as
         begin
             select count(*) into v_awards_count from comment_awards where comment_id=p_comment_id;
             return v_awards_count;
+        exception 
+            when no_data_found then
+                return null;
         end;
         
 end comment_awards_package;
@@ -610,6 +637,9 @@ create or replace package body post_awards_package as
         begin
             select count(*) into v_awards_count from post_awards where post_id=p_post_id;
             return v_awards_count;
+        exception 
+            when no_data_found then
+                return null;
         end;
 end post_awards_package;
 /
@@ -756,6 +786,9 @@ create or replace package body comment_votes_package as
                 return 0;
             end if;
             return v_vote_value;
+        exception 
+            when no_data_found then
+                return null;
         end;
 end comment_votes_package;
 /
@@ -903,6 +936,9 @@ create or replace package body post_votes_package as
                 return 0;
             end if;
             return v_vote_value;
+        exception 
+            when no_data_found then
+                return null;
         end;
 end post_votes_package;
 /  

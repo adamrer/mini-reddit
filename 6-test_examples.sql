@@ -114,6 +114,10 @@ commit;
 -- Show all users
 select * from users;
 
+-- Try to add existing user
+-- Ends with 'User "alice" already exists.'
+exec users_package.add_user('alice', 'alice@example.com');
+
 -- Create a user
 exec users_package.add_user('adam', 'adam@example.com');
 select * from users;
@@ -139,6 +143,10 @@ commit;
 
 -- Show all communities
 select * from view_communities;
+
+-- Try to create already existing community
+-- Ends with error 'Community "linux" already exists'
+exec communities_package.add_community('linux', 'something something');
 
 -- Add Alice to non-existing community
 -- Ends with error 'Community with name "gaming" does not exist.'
