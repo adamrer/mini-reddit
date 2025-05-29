@@ -1,18 +1,25 @@
--- Author: Adam �e�icha
+-- Author: Adam Řeřicha
 
 /* 
 
-Mini Reddit datab�ze
+Mini Reddit databáze
 --------------------
 
-Jako t�ma na z�po�tovou datab�zovou aplikaci m� napadlo vytvo�it zjednodu�enou 
-datab�zi soci�ln� s�t� Reddit. V n� u�ivatel� mohou b�t sou��st� komunit, do 
-kter�ch mohou zve�ejnit p��sp�vky, k p��sp�vk�m p�idat koment��, ozna�it 
-p��sp�vek/koment��, �e se jim l�b�/nel�b�, nebo jim p�idat cenu, pokud se jim 
-obzvl᚝ l�b�.
+Jako téma na zápočtovou databázovou aplikaci mě napadlo vytvořit zjednodušenou databázi sociální sítě Reddit.
+V níž uživatelé mohou být součástí komunit, do kterých mohou zveřejnit příspěvky, k příspěvkům přidat komentář,
+označit příspěvek/komentář, že se jim líbí/nelíbí, nebo jim přidat cenu, pokud se jim obzvlášť líbí.
 
-
-
+Tabulky:
+•	users: tabulka uživatelů
+•	communities: tabulka komunit
+•	community_members: tabulka přiřazující uživatele komunitám, do kterých se přidali
+•	posts: tabulka příspěvků s odkazem na autora (uživatele)
+•	comments: tabulka komentářů s odkazem na autora (uživatele)
+•	awards: tabulka dostupných cen, které mohou být přiděleny příspěvkům nebo komentářům
+•	post_awards: tabulka s odkazy na uživatele, cenu a příspěvek. Říká jakou cenu jaký uživatel dal jakému příspěvku.
+•	comment_awards: tabulka s odkazy na uživatele, cenu a příspěvek. Říká jakou cenu jaký uživatel dal jakému komentáři.
+•	post_votes: tabulka pro zaznamenání toho, kdo označil příspěvek, že se mu (ne)líbí
+•	comment_votes: tabulka pro zaznamenání toho, kdo označil komentář, že se mu (ne)líbí
 
 */
 
@@ -86,7 +93,8 @@ create table comments (
 create table awards (
     id numeric(16)
         constraint award_pk primary key,
-    name varchar2(64 char) not null,
+    name varchar2(64 char) not null
+        constraint award_uq unique,
     icon_path varchar2(255 char) not null
 );
 

@@ -1,4 +1,4 @@
--- Author: Adam Øeøicha
+-- Author: Adam Å˜eÅ™icha
 
 begin 
     dbms_stats.gather_table_stats(user,'awards',cascade => true);

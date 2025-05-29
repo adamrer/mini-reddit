@@ -1,4 +1,4 @@
--- Author: Adam �e�icha
+-- Author: Adam Řeřicha
 
 
 begin

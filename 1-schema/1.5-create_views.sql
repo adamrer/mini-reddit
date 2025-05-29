@@ -1,4 +1,4 @@
--- Author: Adam �e�icha
+-- Author: Adam Řeřicha
 
 -- show posts ordered by vote values descending
 create or replace view view_posts as

@@ -31,7 +31,6 @@ select * from view_community_members where username = 'alice';
 -- Show posts that are from communities that the user (viewer) is part of
 select * from view_relevant_posts where viewer = 'alice';
 
-
 -- Like the post, add +1 to votes
 exec post_votes_package.like_post(3, 'alice');
 select * from view_posts where post_id = 3;
@@ -58,6 +57,34 @@ select * from view_posts where post_id = 1;
 
 -- View awards given to all posts
 select * from view_post_awards;
+
+-- Find out the existence of a post
+-- Will print out 'Post does exist.'
+declare
+    v_exists boolean;
+begin
+    v_exists := posts_package.post_exists(1);
+    if v_exists then
+        dbms_output.put_line('Post exists.');
+    else
+        dbms_output.put_line('Post does not exist.');
+    end if;
+end;
+/
+
+-- Find out the existence of a post
+-- Will print out 'Post does not exist.'
+declare
+    v_exists boolean;
+begin
+    v_exists := posts_package.post_exists(5);
+    if v_exists then
+        dbms_output.put_line('Post exists.');
+    else
+        dbms_output.put_line('Post does not exist.');
+    end if;
+end;
+/
 
 commit;
 
@@ -106,6 +133,34 @@ select * from view_comment_awards where id = 5;
 select * from view_comment_awards;
 
 
+-- Find out the existence of a comment 
+-- Will print out 'Comment does exist.'
+declare
+    v_exists boolean;
+begin
+    v_exists := comments_package.comment_exists(1);
+    if v_exists then
+        dbms_output.put_line('Comment exists.');
+    else
+        dbms_output.put_line('Comment does not exist.');
+    end if;
+end;
+/
+
+-- Find out the existence of a comment
+-- Will print out 'Comment does not exist.'
+declare
+    v_exists boolean;
+begin
+    v_exists := comments_package.comment_exists(13);
+    if v_exists then
+        dbms_output.put_line('Comment exists.');
+    else
+        dbms_output.put_line('Comment does not exist.');
+    end if;
+end;
+/
+
 commit;
 
 
@@ -136,6 +191,12 @@ select * from view_most_awarded_users;
 -- List users ordered by the total vote value of their posts
 select * from view_most_likeable_users;
 
+-- Get id of a user
+select users_package.user_id('alice') from dual;
+
+-- Try to get id of a non-existing user
+-- Will give null
+select users_package.user_id('adam') from dual;
 
 commit;
 
@@ -161,6 +222,9 @@ select * from view_communities;
 -- Add Alice to the new community
 exec community_members_package.add_member('alice', 'gaming');
 
+-- Delete a community
+exec communities_package.delete_community('gaming');
+
 -- List all linux community members
 select * from view_community_members where community = 'linux';
 
@@ -168,6 +232,12 @@ select * from view_community_members where community = 'linux';
 exec community_members_package.remove_member('john', 'linux');
 select * from view_community_members where community = 'linux';
 
+-- Get the id of a community
+select communities_package.community_id('linux') from dual;
+
+-- Try to get the id of a non-existing community
+-- Will give null
+select communities_package.community_id('skateboarding') from dual;
 
 commit;
 
@@ -177,7 +247,11 @@ commit;
 -- Show awards
 select * from awards;
 
--- Create new award
+-- Try to create award that already exists
+-- Ends with error 'Award "Gold Star" already exists.'
+exec awards_package.add_award('Gold Star', '/some/path');
+
+-- Create a new award
 exec awards_package.add_award('Bronze Star', 'https://cdn-icons-png.flaticon.com/512/11166/11166467.png');
 select * from awards;
 
@@ -189,5 +263,32 @@ select * from awards;
 exec awards_package.delete_award(1);
 select * from awards;
 
+-- Find out the existence of an award 
+-- Will print out 'Award does exist.'
+declare
+    v_exists boolean;
+begin
+    v_exists := comments_package.comment_exists(1);
+    if v_exists then
+        dbms_output.put_line('Award exists.');
+    else
+        dbms_output.put_line('Award does not exist.');
+    end if;
+end;
+/
+
+-- Find out the existence of an award
+-- Will print out 'Award does not exist.'
+declare
+    v_exists boolean;
+begin
+    v_exists := comments_package.comment_exists(13);
+    if v_exists then
+        dbms_output.put_line('Award exists.');
+    else
+        dbms_output.put_line('Award does not exist.');
+    end if;
+end;
+/
 
 commit;

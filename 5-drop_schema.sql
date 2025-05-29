@@ -1,3 +1,4 @@
+-- Author: Adam Řeřicha
 
 -- drop views
 drop view view_posts;

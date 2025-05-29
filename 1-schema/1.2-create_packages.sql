@@ -1,4 +1,4 @@
--- Author: Adam �e�icha
+-- Author: Adam Řeřicha
 
 
 --  U S E R S
@@ -184,6 +184,9 @@ create or replace package body awards_package as
     begin
         insert into awards(id, name, icon_path)
             values(awards_id_seq.nextval, p_name, p_icon_path);
+    exception            
+        when dup_val_on_index then
+            raise_application_error(-20013, 'Award "'||p_name||'" already exists.');
     end;
         
     procedure delete_award(

@@ -1,4 +1,4 @@
--- Author: Adam Øeøicha
+-- Author: Adam Å˜eÅ™icha
 
 
 -- COMMENT TRIGGERS
