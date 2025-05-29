@@ -8,12 +8,16 @@
 select * from view_posts;
 
 -- Add a post
-exec posts_package.add_post('alice', 'programming', 'When do you need to implement queues yourself?', 'I think that you are always able to use preimplemented one.', null);
+exec posts_package.add_post('alice', 'programming', 'When do you need to implement queues yourself?', 'I think that you are always able to use pre-implemented one.', null);
 exec posts_package.add_post('bob', 'programming', 'Should I use Linux?', 'I heard that it is better for programmers.', null)
 select * from view_posts;
 
+-- Try to add an empty post
+-- Ends with error 'Post must have an image or a text'
+exec posts_package.add_post('alice', 'programming', null, null, null);
+
 -- Update a post
-exec posts_package.update_post(4, 'When do you need to implement queues yourself???', 'I think that you are always able to use preimplemented one.', 'https://media.geeksforgeeks.org/wp-content/cdn-uploads/20230726165642/Queue-Data-structure1.png');
+exec posts_package.update_post(4, 'When do you need to implement queues yourself???', 'I think that you are always able to use pre-implemented one.', 'https://media.geeksforgeeks.org/wp-content/cdn-uploads/20230726165642/Queue-Data-structure1.png');
 select * from view_posts where post_id = 4;
 
 
@@ -77,7 +81,7 @@ end;
 declare
     v_exists boolean;
 begin
-    v_exists := posts_package.post_exists(5);
+    v_exists := posts_package.post_exists(15);
     if v_exists then
         dbms_output.put_line('Post exists.');
     else
@@ -98,6 +102,12 @@ exec comments_package.add_comment('alice', null, 3, 'Am not sure, never tried it
 exec comments_package.add_comment('bob', null, 3, 'It takes a lot of your time.')
 select * from view_threaded_comments where post_id = 3;
 
+select * from view_threaded_comments;
+
+-- Try to create a comment with non-existing parent comment
+-- Ends with error 'Parent comment with id "6" does not exist
+exec comments_package.add_comment('alice', 15, 3, 'Comment that is parent to himself');
+
 -- Dislike a comment
 exec comment_votes_package.dislike_comment(4, 'john');
 select * from view_threaded_comments where post_id = 3;
@@ -110,7 +120,7 @@ select * from view_threaded_comments where post_id = 3;
 exec comment_votes_package.delete_vote(4, 'john');
 select * from view_threaded_comments where post_id = 3;
 
--- Reply to the comment 
+-- Reply to a comment 
 exec comments_package.add_comment('john', 4, 3, 'Thats a shame.');
 select * from view_threaded_comments where post_id = 3;
 
@@ -127,7 +137,7 @@ exec comment_awards_package.award_comment(5, 1, 'alice');
 select * from view_threaded_comments where post_id = 3;
 
 -- View the awards given to the comment
-select * from view_comment_awards where id = 5;
+select * from view_comment_awards where comment_id = 5;
 
 -- View all given awards
 select * from view_comment_awards;
@@ -221,9 +231,11 @@ select * from view_communities;
 
 -- Add Alice to the new community
 exec community_members_package.add_member('alice', 'gaming');
+select * from view_community_members where community = 'gaming';
 
 -- Delete a community
 exec communities_package.delete_community('gaming');
+select * from view_communities;
 
 -- List all linux community members
 select * from view_community_members where community = 'linux';
@@ -256,7 +268,7 @@ exec awards_package.add_award('Bronze Star', 'https://cdn-icons-png.flaticon.com
 select * from awards;
 
 -- Delete award that wasn't given to anything
-exec awards_package.delete_award(3);
+exec awards_package.delete_award(4);
 select * from awards;
 
 -- Delete award that was given to something
@@ -264,7 +276,7 @@ exec awards_package.delete_award(1);
 select * from awards;
 
 -- Find out the existence of an award 
--- Will print out 'Award does exist.'
+-- Will print out 'Award exists.'
 declare
     v_exists boolean;
 begin
